@@ -1,0 +1,52 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #050505;
+  --card-foreground: #ffffff;
+  --popover: #050505;
+  --popover-foreground: #ffffff;
+  --primary: #c49f08;
+  --primary-foreground: #000000;
+  --secondary: #0f0f0f;
+  --secondary-foreground: #ffffff;
+  --muted: #0f0f0f;
+  --muted-foreground: #999999;
+  --accent: #c49f08;
+  --accent-foreground: #000000;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+  --border: #0f0f0f;
+  --input: #0f0f0f;
+  --ring: #c49f08;
+  --radius: 0;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Space Mono", monospace;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s forwards;
+}
+

@@ -12,9 +12,8 @@
       "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
     },
     "sound2_backend": {
-      "candid": "src/sound2_backend/sound2_backend.did",
-      "package": "sound2_backend",
-      "type": "rust"
+      "main": "src/sound2_backend/main.mo",
+      "type": "motoko"
     },
     "sound2_frontend": {
       "dependencies": [

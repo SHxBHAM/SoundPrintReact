@@ -8,10 +8,8 @@ To learn more before you start working with `sound2`, see the following document
 
 - [Quick Start](https://internetcomputer.org/docs/current/developer-docs/setup/deploy-locally)
 - [SDK Developer Tools](https://internetcomputer.org/docs/current/developer-docs/setup/install)
-- [Rust Canister Development Guide](https://internetcomputer.org/docs/current/developer-docs/backend/rust/)
-- [ic-cdk](https://docs.rs/ic-cdk)
-- [ic-cdk-macros](https://docs.rs/ic-cdk-macros)
-- [Candid Introduction](https://internetcomputer.org/docs/current/developer-docs/backend/candid/)
+- [Motoko Programming Language Guide](https://internetcomputer.org/docs/current/motoko/main/motoko)
+- [Motoko Language Quick Reference](https://internetcomputer.org/docs/current/motoko/main/language-manual)
 
 If you want to start working on your project right away, you might want to try the following commands:
 
