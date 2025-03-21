@@ -3,6 +3,7 @@ import LandingPage from "./pages/LandingPage"
 import HomePage from "./pages/HomePage"
 import GeneratePage from "./pages/GeneratePage"
 import ResultPage from "./pages/ResultPage"
+import CallbackPage from "./pages/CallbackPage"
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/generate" element={<GeneratePage />} />
         <Route path="/result" element={<ResultPage />} />
+        <Route path="/callback" element={<CallbackPage />} />
       </Routes>
     </Router>
   )

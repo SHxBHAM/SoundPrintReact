@@ -5,18 +5,15 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "../components/ui/button"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
+import { getSpotifyAuthUrl } from "../services/spotify"
 
 const HomePage = () => {
   const navigate = useNavigate()
   const [isAuthenticating, setIsAuthenticating] = useState(false)
 
-  const handleAuthenticate = async () => {
+  const handleSpotifyLogin = () => {
     setIsAuthenticating(true)
-    // In a real implementation, this would trigger passkey authentication
-    // For now, we'll simulate the process
-    setTimeout(() => {
-      navigate("/generate")
-    }, 2000)
+    window.location.href = getSpotifyAuthUrl()
   }
 
   return (
@@ -36,11 +33,11 @@ const HomePage = () => {
               </p>
               <div className="pt-4">
                 <Button
-                  onClick={handleAuthenticate}
+                  onClick={handleSpotifyLogin}
                   disabled={isAuthenticating}
                   className="bg-white text-black hover:bg-[#c49f08] rounded-none px-8 py-6 text-xs font-normal"
                 >
-                  {isAuthenticating ? "AUTHENTICATING..." : "SIGN IN WITH PASSKEY"}
+                  {isAuthenticating ? "CONNECTING TO SPOTIFY..." : "CONNECT WITH SPOTIFY"}
                 </Button>
               </div>
             </div>
