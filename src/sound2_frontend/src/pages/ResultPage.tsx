@@ -152,18 +152,14 @@ const ResultPage = () => {
                       : "MINT NFT ON ICP"}
                   </Button>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-4">
                     <Button
                       onClick={handleDownload}
                       className="w-full bg-transparent border border-zinc-800 hover:border-zinc-700 rounded-none py-6 text-xs font-normal"
                     >
                       DOWNLOAD
                     </Button>
-                    <Button className="w-full bg-transparent border border-zinc-800 hover:border-zinc-700 rounded-none py-6 text-xs font-normal">
-                      SHARE
-                    </Button>
                   </div>
-
                   <Button
                     onClick={handleLogout}
                     className="w-full bg-transparent border border-zinc-800 hover:border-zinc-700 rounded-none py-6 text-xs font-normal text-red-500 hover:text-red-400"
