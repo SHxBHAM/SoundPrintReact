@@ -1,13 +1,11 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
-  const navigate = useNavigate()
-  const [loadingProgress, setLoadingProgress] = useState(0)
-  const [loadingText, setLoadingText] = useState("INITIALIZING")
-  const [isLoaded, setIsLoaded] = useState(false)
+  const navigate = useNavigate();
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingText, setLoadingText] = useState("INITIALIZING");
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const loadingPhrases = [
     'LOADING " MUSIC IS THE ANSWER "',
@@ -15,41 +13,41 @@ const LandingPage = () => {
     "GENERATING UNIQUE HASH",
     "CREATING WAVEFORM",
     "PREPARING YOUR EXPERIENCE",
-  ]
+  ];
 
   useEffect(() => {
     // Simulate loading progress
     const interval = setInterval(() => {
       setLoadingProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(interval)
+          clearInterval(interval);
           setTimeout(() => {
-            setIsLoaded(true)
+            setIsLoaded(true);
             setTimeout(() => {
-              navigate("/home")
-            }, 1000)
-          }, 500)
-          return 100
+              navigate("/home");
+            }, 1000);
+          }, 500);
+          return 100;
         }
-        return prev + 1
-      })
+        return prev + 1;
+      });
 
       // Change loading text at certain intervals
       if (loadingProgress < 20) {
-        setLoadingText(loadingPhrases[0])
+        setLoadingText(loadingPhrases[0]);
       } else if (loadingProgress < 40) {
-        setLoadingText(loadingPhrases[1])
+        setLoadingText(loadingPhrases[1]);
       } else if (loadingProgress < 60) {
-        setLoadingText(loadingPhrases[2])
+        setLoadingText(loadingPhrases[2]);
       } else if (loadingProgress < 80) {
-        setLoadingText(loadingPhrases[3])
+        setLoadingText(loadingPhrases[3]);
       } else {
-        setLoadingText(loadingPhrases[4])
+        setLoadingText(loadingPhrases[4]);
       }
-    }, 50)
+    }, 50);
 
-    return () => clearInterval(interval)
-  }, [loadingProgress, navigate, loadingPhrases])
+    return () => clearInterval(interval);
+  }, [loadingProgress, navigate, loadingPhrases]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white font-mono">
@@ -72,8 +70,7 @@ const LandingPage = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default LandingPage
-
+export default LandingPage;

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "../components/ui/button";
 import P5Wrapper, { P5WrapperHandle } from "../components/p5Wrapper";
@@ -11,6 +9,7 @@ import {
   clearAccessToken,
 } from "../services/spotify";
 import { useNavigate } from "react-router-dom";
+import { useInternetIdentity } from "ic-use-internet-identity";
 
 interface Track {
   id: string;
@@ -31,6 +30,7 @@ const ResultPage = () => {
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [dominantGenres, setDominantGenres] = useState<string>("");
   const [genreHash, setGenreHash] = useState<string>("");
+  const { clear, loginStatus } = useInternetIdentity();
 
   const fetchTopTracks = useCallback(async () => {
     if (hasAttemptedFetch && !error) return; // Don't refetch if we already have tracks
@@ -80,6 +80,7 @@ const ResultPage = () => {
   };
 
   const handleLogout = () => {
+    clear();
     clearAccessToken();
     navigate("/home");
   };

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
@@ -8,14 +6,51 @@ import Footer from "../components/Footer";
 import { getSpotifyAuthUrl } from "../services/spotify";
 import Naya from "../components/Naya";
 import Vortex from "../components/Vortex";
-
+import { useInternetIdentity } from "ic-use-internet-identity";
 export default function HomePage() {
   const navigate = useNavigate();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const { login, loginStatus } = useInternetIdentity();
 
-  const handleSpotifyLogin = () => {
+  const handleLogin = async () => {
     setIsAuthenticating(true);
-    window.location.href = getSpotifyAuthUrl();
+
+    // If already logged in, redirect to Spotify
+    // @ts-ignore
+    if (loginStatus === "success" || loginStatus === "logged-in") {
+      window.location.href = getSpotifyAuthUrl();
+      setIsAuthenticating(false);
+      return;
+    }
+
+    // Otherwise attempt to login
+    try {
+      await login(); // Call login, which returns Promise<void>
+
+      // Check login status after attempting to log in
+      // @ts-ignore
+
+      if (loginStatus === "success" || loginStatus === "logged-in") {
+        window.location.href = getSpotifyAuthUrl();
+      } else {
+        console.error("Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  // Determine button text based on login status
+  const getButtonText = () => {
+    if (isAuthenticating) return "Logging in...";
+    // @ts-ignore
+
+    if (loginStatus === "success" || loginStatus === "logged-in") {
+      return "Continue to Spotify";
+    }
+    return "Sign In";
   };
 
   return (
@@ -26,12 +61,12 @@ export default function HomePage() {
         {/* Hero Section with Vortex */}
         <Vortex
           particleCount={700}
-          baseHue={220}  // Blue color scheme
+          baseHue={220} // Blue color scheme
           baseSpeed={0.2}
           rangeSpeed={2}
           baseRadius={1}
           rangeRadius={1.5}
-          backgroundColor="rgba(0,0,0,0)"  // Transparent background
+          backgroundColor="rgba(0,0,0,0)" // Transparent background
           containerClassName="h-[90vh]"
         >
           <section className="py-32 md:py-40 w-full">
@@ -41,18 +76,17 @@ export default function HomePage() {
                   YOUR MUSIC TASTE AS A UNIQUE DIGITAL ASSET
                 </h1>
                 <p className="text-zinc-400 max-w-xl mx-auto text-lg">
-                  Transform your music listening history into a one-of-a-kind NFT.
-                  Your musical identity, visualized through algorithmic waveforms.
+                  Transform your music listening history into a one-of-a-kind
+                  NFT. Your musical identity, visualized through algorithmic
+                  waveforms.
                 </p>
                 <div className="pt-6">
                   <Button
-                    onClick={handleSpotifyLogin}
+                    onClick={handleLogin}
                     disabled={isAuthenticating}
                     className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800/50 text-white hover:bg-zinc-900 hover:border-zinc-700 px-10 py-6 text-sm font-normal transition-all duration-500"
                   >
-                    {isAuthenticating
-                      ? "CONNECTING TO SPOTIFY..."
-                      : "CONNECT WITH SPOTIFY"}
+                    {getButtonText()}
                   </Button>
                 </div>
               </div>

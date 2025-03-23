@@ -1,53 +1,53 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const GeneratePage = () => {
-  const navigate = useNavigate()
-  const [stage, setStage] = useState<"analyzing" | "hashing" | "generating" | "complete">("analyzing")
-  const [progress, setProgress] = useState(0)
-  const [loadingText, setLoadingText] = useState("ANALYZING YOUR MUSIC")
+  const navigate = useNavigate();
+  const [stage, setStage] = useState<
+    "analyzing" | "hashing" | "generating" | "complete"
+  >("analyzing");
+  const [progress, setProgress] = useState(0);
+  const [loadingText, setLoadingText] = useState("ANALYZING YOUR MUSIC");
 
   useEffect(() => {
     // Simulate the generation process
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(interval)
-          return 100
+          clearInterval(interval);
+          return 100;
         }
-        return prev + 0.5
-      })
+        return prev + 0.5;
+      });
 
       // Change stages at certain intervals
       if (progress < 33) {
-        setStage("analyzing")
-        setLoadingText("ANALYZING YOUR MUSIC")
+        setStage("analyzing");
+        setLoadingText("ANALYZING YOUR MUSIC");
       } else if (progress < 66) {
-        setStage("hashing")
-        setLoadingText("GENERATING SHA256 HASH")
+        setStage("hashing");
+        setLoadingText("GENERATING SHA256 HASH");
       } else if (progress < 100) {
-        setStage("generating")
-        setLoadingText("CREATING WAVEFORM")
+        setStage("generating");
+        setLoadingText("CREATING WAVEFORM");
       } else {
-        setStage("complete")
-        setLoadingText("COMPLETE")
+        setStage("complete");
+        setLoadingText("COMPLETE");
       }
-    }, 50)
+    }, 50);
 
-    return () => clearInterval(interval)
-  }, [progress])
+    return () => clearInterval(interval);
+  }, [progress]);
 
   // Navigate to result page when complete
   useEffect(() => {
     if (stage === "complete") {
       const timer = setTimeout(() => {
-        navigate("/result")
-      }, 1000)
-      return () => clearTimeout(timer)
+        navigate("/result");
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [stage, navigate])
+  }, [stage, navigate]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white font-mono">
@@ -81,12 +81,16 @@ const GeneratePage = () => {
 
         {stage === "hashing" && (
           <div className="mt-16 text-center">
-            <p className="text-xs text-zinc-400 mb-2">CREATING UNIQUE IDENTIFIER</p>
+            <p className="text-xs text-zinc-400 mb-2">
+              CREATING UNIQUE IDENTIFIER
+            </p>
             <div className="font-mono text-xs mt-8 text-zinc-500 overflow-hidden h-20">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="mb-1">
                   {Array.from({ length: 32 })
-                    .map(() => "0123456789abcdef"[Math.floor(Math.random() * 16)])
+                    .map(
+                      () => "0123456789abcdef"[Math.floor(Math.random() * 16)]
+                    )
                     .join("")}
                 </div>
               ))}
@@ -100,7 +104,7 @@ const GeneratePage = () => {
             <div className="h-40 w-full mt-8 flex items-center justify-center">
               <div className="w-full h-[60px] relative">
                 {Array.from({ length: 50 }).map((_, i) => {
-                  const height = Math.sin(i * 0.2 + progress * 0.05) * 20 + 30
+                  const height = Math.sin(i * 0.2 + progress * 0.05) * 20 + 30;
                   return (
                     <div
                       key={i}
@@ -112,7 +116,7 @@ const GeneratePage = () => {
                         opacity: progress > 80 ? 1 : 0.5,
                       }}
                     />
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -120,8 +124,7 @@ const GeneratePage = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default GeneratePage
-
+export default GeneratePage;
