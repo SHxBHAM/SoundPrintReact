@@ -3,6 +3,7 @@ import { Button } from "../components/ui/button";
 import P5Wrapper, { P5WrapperHandle } from "../components/p5Wrapper";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import axios from "axios";
 import {
   getTopTracks,
   getTopGenres,
@@ -10,6 +11,7 @@ import {
 } from "../services/spotify";
 import { useNavigate } from "react-router-dom";
 import { useInternetIdentity } from "ic-use-internet-identity";
+import { createBackendActor } from "../utils/icpAgent";
 
 interface Track {
   id: string;
@@ -31,9 +33,44 @@ const ResultPage = () => {
   const [dominantGenres, setDominantGenres] = useState<string>("");
   const [genreHash, setGenreHash] = useState<string>("");
   const { clear, loginStatus } = useInternetIdentity();
+  const [mintError, setMintError] = useState<string | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [initialLoadCheck, setInitialLoadCheck] = useState(true);
+  const timeoutRef = useRef<number | null>(null); // Ref to store the timeout ID
 
+  // Modified function to check if the NFT already exists - resolve immediately
+  const checkIfNftExists = useCallback(async (hash: string) => {
+    if (!hash || hash === "error") return;
+
+    // Clear any existing timeout first
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    setIsCheckingStatus(true);
+
+    // Start the backend query immediately with no artificial delay
+    try {
+      const backendActor = createBackendActor();
+      const exists = await backendActor.nft_exists(hash);
+
+      if (exists) {
+        console.log("NFT already exists with hash:", hash);
+        setIsMinted(true);
+      }
+
+      // Update immediately when done
+      setIsCheckingStatus(false);
+    } catch (error) {
+      console.error("Error checking NFT existence:", error);
+      setIsCheckingStatus(false);
+    }
+  }, []);
+
+  // Update fetchTopTracks to remove localStorage checks
   const fetchTopTracks = useCallback(async () => {
-    if (hasAttemptedFetch && !error) return; // Don't refetch if we already have tracks
+    if (hasAttemptedFetch && !error) return;
 
     try {
       setError(null);
@@ -46,8 +83,12 @@ const ResultPage = () => {
         setTopTracks(tracks);
       }
       if (typeof genreData !== "string") {
+        const hash = genreData.hash;
         setDominantGenres(genreData.genres);
-        setGenreHash(genreData.hash);
+        setGenreHash(hash);
+
+        // Check NFT existence with backend
+        checkIfNftExists(hash);
       } else {
         setDominantGenres(genreData);
         setGenreHash("error");
@@ -64,19 +105,69 @@ const ResultPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [navigate, hasAttemptedFetch, error]);
+  }, [navigate, hasAttemptedFetch, error, checkIfNftExists]);
+
+  // Also check NFT existence when genreHash changes independently
+  useEffect(() => {
+    if (genreHash && genreHash !== "error" && !isMinted) {
+      checkIfNftExists(genreHash);
+    }
+  }, [genreHash, checkIfNftExists, isMinted]);
 
   useEffect(() => {
     fetchTopTracks();
+
+    // Set a consistent timeout for the initial load check
+    setTimeout(() => {
+      setInitialLoadCheck(false);
+    }, 1500); // 1.5 seconds for a smoother experience
   }, [fetchTopTracks]);
 
-  const handleMint = () => {
+  // Update handleMint to remove localStorage operations
+  const handleMint = async () => {
     setIsMinting(true);
-    // Simulate minting process
-    setTimeout(() => {
-      setIsMinting(false);
+    setMintError(null);
+
+    try {
+      // Generate image URL from canvas
+      // @ts-ignore
+      const imageUrl = p5Ref.current?.getBase64Image() || "";
+
+      // Prepare metadata - needs to be an array of [key, value] pairs
+      const metadata: [string, string][] = [
+        ["createdAt", new Date().toISOString()],
+        ["source", "Spotify"],
+      ];
+
+      // Create NFT name and description
+      const nftName = `SoundPrint: ${dominantGenres.split(",")[0]}`;
+      const nftDescription = `A unique audio fingerprint generated from top Spotify tracks. Dominant genres: ${dominantGenres}`;
+
+      // Create backend actor
+      const backendActor = createBackendActor();
+
+      // Call mint_nft with the correct parameter format
+      const result = await backendActor.mint_nft(
+        genreHash,
+        nftName,
+        nftDescription,
+        imageUrl,
+        metadata
+      );
+
+      console.log("NFT minted successfully:", result);
+      handleDownload();
       setIsMinted(true);
-    }, 3000);
+
+      // No more localStorage saves
+    } catch (error) {
+      console.error("Error minting NFT:", error);
+      setMintError(
+        error instanceof Error ? error.message : "Failed to mint NFT"
+      );
+    } finally {
+      setIsMinting(false);
+    }
   };
 
   const handleLogout = () => {
@@ -128,7 +219,13 @@ const ResultPage = () => {
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-zinc-400">STATUS</span>
-                      <span>{isMinted ? "MINTED" : "UNMINTED"}</span>
+                      <span>
+                        {isCheckingStatus || initialLoadCheck
+                          ? "LOADING..."
+                          : isMinted
+                          ? "MINTED"
+                          : "UNMINTED"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -143,19 +240,35 @@ const ResultPage = () => {
                 <div className="space-y-4">
                   <Button
                     onClick={handleMint}
-                    disabled={isMinting || isMinted}
+                    disabled={
+                      isMinting ||
+                      isMinted ||
+                      isCheckingStatus ||
+                      initialLoadCheck || // Add this condition
+                      !genreHash ||
+                      genreHash === "error"
+                    }
                     className="w-full bg-white text-black hover:bg-[#c49f08] rounded-none py-6 text-xs font-normal"
                   >
-                    {isMinting
+                    {initialLoadCheck || isCheckingStatus
+                      ? "CHECKING STATUS..."
+                      : isMinting
                       ? "MINTING ON ICP..."
                       : isMinted
                       ? "MINTED"
                       : "MINT NFT ON ICP"}
                   </Button>
 
+                  {mintError && (
+                    <div className="text-red-500 text-xs text-center">
+                      {mintError}
+                    </div>
+                  )}
+
                   <div className="grid gap-4">
                     <Button
                       onClick={handleDownload}
+                      disabled={initialLoadCheck || isCheckingStatus}
                       className="w-full bg-transparent border border-zinc-800 hover:border-zinc-700 rounded-none py-6 text-xs font-normal"
                     >
                       DOWNLOAD
@@ -163,6 +276,7 @@ const ResultPage = () => {
                   </div>
                   <Button
                     onClick={handleLogout}
+                    disabled={initialLoadCheck || isCheckingStatus}
                     className="w-full bg-transparent border border-zinc-800 hover:border-zinc-700 rounded-none py-6 text-xs font-normal text-red-500 hover:text-red-400"
                   >
                     DISCONNECT SPOTIFY

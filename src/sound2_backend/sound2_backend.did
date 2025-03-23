@@ -1,5 +1,5 @@
 type NFT = record {
-  id : text;
+  hash : text;
   name : text;
   description : text;
   image_url : text;

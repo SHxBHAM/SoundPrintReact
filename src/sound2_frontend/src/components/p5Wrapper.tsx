@@ -10,6 +10,7 @@ import { getTopGenres } from "../services/spotify";
 
 export interface P5WrapperHandle {
   downloadCanvas: () => void;
+  getBase64Image: () => string; // Add this new method
 }
 
 const P5Wrapper = forwardRef<P5WrapperHandle>((_, ref) => {
@@ -25,6 +26,14 @@ const P5Wrapper = forwardRef<P5WrapperHandle>((_, ref) => {
         const timestamp = new Date().toISOString().split("T")[0];
         p5InstanceRef.current.save(`soundprint-${timestamp}.png`);
       }
+    },
+    getBase64Image: () => {
+      if (p5InstanceRef.current) {
+        // Return the canvas as a base64 encoded string
+        const canvas = document.querySelector("canvas");
+        return canvas ? canvas.toDataURL("image/png") : "";
+      }
+      return "";
     },
   }));
 
