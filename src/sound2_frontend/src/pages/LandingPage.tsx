@@ -8,7 +8,7 @@ const LandingPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   const loadingPhrases = [
-    'LOADING " MUSIC IS THE ANSWER "',
+    "LOADING YOUR SOUNDPRINT",
     "ANALYZING AUDIO PATTERNS",
     "GENERATING UNIQUE HASH",
     "CREATING WAVEFORM",

@@ -1,0 +1,17 @@
+type NFT = record {
+  id : nat64;
+  name : text;
+  description : text;
+  image_url : text;
+  owner : principal;
+  metadata : vec record { text; text; };
+};
+
+service : {
+  mint_nft : (text, text, text, vec record { text; text; }) -> (nat64);
+  get_nft : (nat64) -> (opt NFT) query;
+  get_my_nfts : () -> (vec NFT) query;
+  transfer_nft : (nat64, principal) -> (variant { Ok; Err : text });
+  get_all_nfts : () -> (vec NFT) query;
+  nft_exists : (nat64) -> (bool) query;
+}
