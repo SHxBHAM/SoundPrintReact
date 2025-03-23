@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import Header from "../components/Header";
@@ -7,33 +7,76 @@ import { getSpotifyAuthUrl } from "../services/spotify";
 import Naya from "../components/Naya";
 import Vortex from "../components/Vortex";
 import { useInternetIdentity } from "ic-use-internet-identity";
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const { login, loginStatus } = useInternetIdentity();
+  const { login, loginStatus, clear } = useInternetIdentity();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check login status on component mount and when it changes
+  useEffect(() => {
+    // First check localStorage to see if we were previously logged in
+    const storedLoginState = localStorage.getItem("isLoggedIn");
+
+    if (storedLoginState === "true") {
+      setIsLoggedIn(true);
+    }
+
+    // Then check current login status from the hook
+    if (loginStatus === "success" || loginStatus === "logged-in") {
+      console.log(loginStatus);
+      setIsLoggedIn(true);
+      localStorage.setItem("isLoggedIn", "true");
+    }
+    if (loginStatus === "error") {
+      console.log(loginStatus);
+      setIsLoggedIn(false);
+      localStorage.setItem("isLoggedIn", "false");
+    }
+
+    console.log(
+      "Current login status:",
+      loginStatus,
+      "\nIs logged in:",
+      isLoggedIn
+    );
+  }, [loginStatus]);
+
+  // Additional check for URL parameters that might indicate a Spotify auth callback
+  useEffect(() => {
+    // Check if we're coming back from Spotify (URL might have error or code params)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasSpotifyParams = urlParams.has("error") || urlParams.has("code");
+
+    if (hasSpotifyParams && localStorage.getItem("isLoggedIn") === "true") {
+      setIsLoggedIn(true);
+    }
+  }, []);
 
   const handleLogin = async () => {
-    setIsAuthenticating(true);
-
-    // If already logged in, redirect to Spotify
-    // @ts-ignore
-    if (loginStatus === "success" || loginStatus === "logged-in") {
+    // If already logged in, redirect to Spotify directly
+    if (isLoggedIn) {
       window.location.href = getSpotifyAuthUrl();
-      setIsAuthenticating(false);
       return;
     }
 
-    // Otherwise attempt to login
+    // Otherwise, initiate login process
+    setIsAuthenticating(true);
+
     try {
-      await login(); // Call login, which returns Promise<void>
+      await login();
 
-      // Check login status after attempting to log in
-      // @ts-ignore
-
-      if (loginStatus === "success" || loginStatus === "logged-in") {
-        window.location.href = getSpotifyAuthUrl();
+      // After login attempt, check status again
+      if (
+        loginStatus === "success" ||
+        loginStatus === "logged-in" ||
+        loginStatus === "idle"
+      ) {
+        setIsLoggedIn(true);
+        localStorage.setItem("isLoggedIn", "true");
       } else {
-        console.error("Login failed");
+        console.error("Login failed with status:", loginStatus);
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -42,15 +85,50 @@ export default function HomePage() {
     }
   };
 
-  // Determine button text based on login status
-  const getButtonText = () => {
-    if (isAuthenticating) return "Logging in...";
-    // @ts-ignore
+  const handleContinueToSpotify = () => {
+    window.location.href = getSpotifyAuthUrl();
+  };
 
-    if (loginStatus === "success" || loginStatus === "logged-in") {
-      return "Continue to Spotify";
+  const handleLogout = () => {
+    // Clear the stored login state
+    clear();
+    localStorage.removeItem("isLoggedIn");
+    setIsLoggedIn(false);
+    // You could also call a logout function from useInternetIdentity if available
+  };
+
+  // Render the appropriate button based on login state
+  const renderActionButton = () => {
+    if (isAuthenticating) {
+      return (
+        <Button
+          disabled
+          className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800/50 text-white px-10 py-6 text-sm font-normal transition-all duration-500"
+        >
+          Logging in...
+        </Button>
+      );
     }
-    return "Sign In";
+
+    if (isLoggedIn) {
+      return (
+        <Button
+          onClick={handleContinueToSpotify}
+          className="bg-green-700/70 backdrop-blur-sm border border-green-600/50 text-white hover:bg-green-700 hover:border-green-600 px-10 py-6 text-sm font-normal transition-all duration-500"
+        >
+          Continue to Spotify
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        onClick={handleLogin}
+        className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800/50 text-white hover:bg-zinc-900 hover:border-zinc-700 px-10 py-6 text-sm font-normal transition-all duration-500"
+      >
+        Sign In
+      </Button>
+    );
   };
 
   return (
@@ -80,15 +158,22 @@ export default function HomePage() {
                   NFT. Your musical identity, visualized through algorithmic
                   waveforms.
                 </p>
-                <div className="pt-6">
-                  <Button
-                    onClick={handleLogin}
-                    disabled={isAuthenticating}
-                    className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800/50 text-white hover:bg-zinc-900 hover:border-zinc-700 px-10 py-6 text-sm font-normal transition-all duration-500"
-                  >
-                    {getButtonText()}
-                  </Button>
-                </div>
+                <div className="pt-6">{renderActionButton()}</div>
+
+                {isLoggedIn && (
+                  <div className="mt-4 flex flex-col items-center">
+                    <p className="text-green-400 text-sm mb-2">
+                      You're logged in! Click the button above to connect with
+                      Spotify.
+                    </p>
+                    <button
+                      onClick={handleLogout}
+                      className="text-zinc-500 text-xs underline hover:text-zinc-300"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </section>
