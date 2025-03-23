@@ -13,7 +13,7 @@ use std::string::String;
 // Define the NFT structure
 #[derive(CandidType, Deserialize, Clone)]
 struct NFT {
-    id: u64,
+    hash: String,
     name: String,
     description: String,
     image_url: String,
@@ -23,27 +23,23 @@ struct NFT {
 
 // State management
 thread_local! {
-    static NFT_COUNTER: std::cell::RefCell<u64> = std::cell::RefCell::new(0);
-    static NFTS: std::cell::RefCell<HashMap<u64, NFT>> = std::cell::RefCell::new(HashMap::new());
-    static OWNER_TO_NFTS: std::cell::RefCell<HashMap<Principal, Vec<u64>>> = std::cell::RefCell::new(HashMap::new());
+    static NFTS: std::cell::RefCell<HashMap<String, NFT>> = std::cell::RefCell::new(HashMap::new());
+    static OWNER_TO_NFTS: std::cell::RefCell<HashMap<Principal, Vec<String>>> = std::cell::RefCell::new(HashMap::new());
 }
 
 // Initialize the canister
 #[init]
 fn init() {
-    NFT_COUNTER.with(|counter| {
-        *counter.borrow_mut() = 0;
-    });
+    // Counter no longer needed
 }
 
 // Save state before upgrade
 #[pre_upgrade]
 fn pre_upgrade() {
-    let counter = NFT_COUNTER.with(|counter| *counter.borrow());
     let nfts = NFTS.with(|nfts| nfts.borrow().clone());
     let owner_to_nfts = OWNER_TO_NFTS.with(|map| map.borrow().clone());
     
-    match stable_save((counter, nfts, owner_to_nfts)) {
+    match stable_save((nfts, owner_to_nfts)) {
         Ok(_) => (),
         Err(e) => trap(&format!("Failed to save state before upgrade: {}", e)),
     }
@@ -52,13 +48,12 @@ fn pre_upgrade() {
 // Restore state after upgrade
 #[post_upgrade]
 fn post_upgrade() {
-    let (counter, nfts, owner_to_nfts): (u64, HashMap<u64, NFT>, HashMap<Principal, Vec<u64>>) = 
+    let (nfts, owner_to_nfts): (HashMap<String, NFT>, HashMap<Principal, Vec<String>>) = 
         match stable_restore() {
             Ok(state) => state,
             Err(e) => trap(&format!("Failed to restore state after upgrade: {}", e)),
         };
     
-    NFT_COUNTER.with(|c| *c.borrow_mut() = counter);
     NFTS.with(|n| *n.borrow_mut() = nfts);
     OWNER_TO_NFTS.with(|o| *o.borrow_mut() = owner_to_nfts);
 }
@@ -66,48 +61,47 @@ fn post_upgrade() {
 // Mint a new NFT
 #[update]
 #[candid_method(update)]
-fn mint_nft(name: String, description: String, image_url: String, metadata: HashMap<String, String>) -> u64 {
+fn mint_nft(hash: String, name: String, description: String, image_url: String, metadata: HashMap<String, String>) -> String {
     let caller = api::caller();
     
-    NFT_COUNTER.with(|counter| {
-        let id = *counter.borrow();
-        let new_id = id + 1;
-        *counter.borrow_mut() = new_id;
-        
-        let nft = NFT {
-            id,
-            name,
-            description,
-            image_url,
-            owner: caller,
-            metadata,
-        };
-        
-        // Store the NFT
-        NFTS.with(|nfts| {
-            nfts.borrow_mut().insert(id, nft);
-        });
-        
-        // Update owner's NFT collection
-        OWNER_TO_NFTS.with(|owner_to_nfts| {
-            let mut map = owner_to_nfts.borrow_mut();
-            if let Some(nft_ids) = map.get_mut(&caller) {
-                nft_ids.push(id);
-            } else {
-                map.insert(caller, vec![id]);
-            }
-        });
-        
-        id
-    })
+    // Check if an NFT with this hash already exists
+    if nft_exists(hash.clone()) {
+        trap(&format!("NFT with hash {} already exists", hash));
+    }
+    
+    let nft = NFT {
+        hash: hash.clone(),
+        name,
+        description,
+        image_url,
+        owner: caller,
+        metadata,
+    };
+    
+    // Store the NFT
+    NFTS.with(|nfts| {
+        nfts.borrow_mut().insert(hash.clone(), nft);
+    });
+    
+    // Update owner's NFT collection
+    OWNER_TO_NFTS.with(|owner_to_nfts| {
+        let mut map = owner_to_nfts.borrow_mut();
+        if let Some(nft_hashes) = map.get_mut(&caller) {
+            nft_hashes.push(hash.clone());
+        } else {
+            map.insert(caller, vec![hash.clone()]);
+        }
+    });
+    
+    hash
 }
 
-// Get NFT details by ID
+// Get NFT details by hash
 #[query]
 #[candid_method(query)]
-fn get_nft(id: u64) -> Option<NFT> {
+fn get_nft(hash: String) -> Option<NFT> {
     NFTS.with(|nfts| {
-        nfts.borrow().get(&id).cloned()
+        nfts.borrow().get(&hash).cloned()
     })
 }
 
@@ -119,11 +113,11 @@ fn get_my_nfts() -> Vec<NFT> {
     let mut result = Vec::new();
     
     OWNER_TO_NFTS.with(|owner_to_nfts| {
-        if let Some(nft_ids) = owner_to_nfts.borrow().get(&caller) {
+        if let Some(nft_hashes) = owner_to_nfts.borrow().get(&caller) {
             NFTS.with(|nfts| {
                 let nfts_map = nfts.borrow();
-                for id in nft_ids {
-                    if let Some(nft) = nfts_map.get(id) {
+                for hash in nft_hashes {
+                    if let Some(nft) = nfts_map.get(hash) {
                         result.push(nft.clone());
                     }
                 }
@@ -137,12 +131,12 @@ fn get_my_nfts() -> Vec<NFT> {
 // Transfer an NFT to another principal
 #[update]
 #[candid_method(update)]
-fn transfer_nft(id: u64, to: Principal) -> Result<(), String> {
+fn transfer_nft(hash: String, to: Principal) -> Result<(), String> {
     let caller = api::caller();
     
     NFTS.with(|nfts| {
         let mut nfts_map = nfts.borrow_mut();
-        if let Some(nft) = nfts_map.get_mut(&id) {
+        if let Some(nft) = nfts_map.get_mut(&hash) {
             if nft.owner != caller {
                 return Err("You don't own this NFT".to_string());
             }
@@ -156,14 +150,14 @@ fn transfer_nft(id: u64, to: Principal) -> Result<(), String> {
                 
                 // Remove from current owner
                 if let Some(caller_nfts) = map.get_mut(&caller) {
-                    caller_nfts.retain(|&nft_id| nft_id != id);
+                    caller_nfts.retain(|nft_hash| nft_hash != &hash);
                 }
                 
                 // Add to new owner
                 if let Some(recipient_nfts) = map.get_mut(&to) {
-                    recipient_nfts.push(id);
+                    recipient_nfts.push(hash.clone());
                 } else {
-                    map.insert(to, vec![id]);
+                    map.insert(to, vec![hash.clone()]);
                 }
             });
             
@@ -186,9 +180,9 @@ fn get_all_nfts() -> Vec<NFT> {
 // Check if an NFT exists
 #[query]
 #[candid_method(query)]
-fn nft_exists(id: u64) -> bool {
+fn nft_exists(hash: String) -> bool {
     NFTS.with(|nfts| {
-        nfts.borrow().contains_key(&id)
+        nfts.borrow().contains_key(&hash)
     })
 }
 
